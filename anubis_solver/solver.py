@@ -102,7 +102,10 @@ def solve(endpoint: str, sleep: float = 1.0) -> str:
             final_cookie = f"{cookie}; {c2}" if c2 else cookie
         else:  # assume PoW
             m_chal = re.search(r"\"challenge\":\"([^\"]+)\"", body)
+            if not m_chal:
+                m_chal = re.search(r"\"randomData\":\"([^\"]+)\"", body)
             m_diff = re.search(r"\"difficulty\":(\d+)", body)
+            m_id = re.search(r"\"id\":\"([^\"]+)\"", body)
             if not (m_chal and m_diff):
                 raise RuntimeError("PoW challenge parse error")
 
@@ -114,11 +117,16 @@ def solve(endpoint: str, sleep: float = 1.0) -> str:
             hash_hex = bytes_to_hex(h)
 
             time.sleep(sleep)
+
             url = (
                 endpoint.rstrip("/")
                 + f"/.within.website/x/cmd/anubis/api/pass-challenge?"
                 f"response={hash_hex}&nonce={ans}&elapsedTime=10&redir=%2F"
             )
+
+            if m_id:
+                url += f"&id={m_id.group(1)}"
+
             c2, _ = _fetch(url, cookie)
             final_cookie = f"{cookie}; {c2}" if c2 else cookie
     except Exception as e:
