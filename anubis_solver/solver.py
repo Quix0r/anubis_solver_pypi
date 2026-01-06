@@ -8,11 +8,15 @@ from .utils import sha256, bytes_to_hex
 
 
 def _fetch(url: str, cookie: Optional[str] = None) -> tuple[Optional[str], str]:
-    headers = {"User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                              "AppleWebKit/537.36 (KHTML, like Gecko) "
-                              "Chrome/58.0.3029.110 AnubisSolver/0.1.1 +https://pypi.org/project/anubis-solver/"),
-               "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-               "Accept-Language": "en-US,en;q=0.5", }
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/58.0.3029.110 AnubisSolver/0.1.1 +https://pypi.org/project/anubis-solver/"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+    }
     if cookie:
         headers["Cookie"] = cookie
 
@@ -23,8 +27,10 @@ def _fetch(url: str, cookie: Optional[str] = None) -> tuple[Optional[str], str]:
     if "Set-Cookie" in resp.headers:
         parts = []
         cookie_headers = []
-        if hasattr(resp.raw, '_original_response') and hasattr(resp.raw._original_response, 'msg'):
-            cookie_headers = resp.raw._original_response.msg.get_all('Set-Cookie') or []
+        if hasattr(resp.raw, "_original_response") and hasattr(
+            resp.raw._original_response, "msg"
+        ):
+            cookie_headers = resp.raw._original_response.msg.get_all("Set-Cookie") or []
         else:
             single_cookie = resp.headers.get("Set-Cookie")
             if single_cookie:
@@ -40,6 +46,7 @@ def _fetch(url: str, cookie: Optional[str] = None) -> tuple[Optional[str], str]:
 
 def _solve_pow(challenge: str, difficulty: int, threads: int = 8) -> int:
     from itertools import count
+
     stop = False
     result = None
 
@@ -71,7 +78,7 @@ def solve(endpoint: str, sleep: float = 1.0) -> str:
 
     final_cookie = None
     try:
-        if "\"algorithm\":\"metarefresh\"" in body:
+        if '"algorithm":"metarefresh"' in body:
             m = re.search(r"url=/([^\"<]+)", body)
             if not m:
                 raise RuntimeError("No URL in metarefresh challenge")
@@ -79,15 +86,18 @@ def solve(endpoint: str, sleep: float = 1.0) -> str:
             time.sleep(sleep)
             c2, _ = _fetch(url, cookie)
             final_cookie = f"{cookie}; {c2}" if c2 else cookie
-        elif "\"algorithm\":\"preact\"" in body:
+        elif '"algorithm":"preact"' in body:
             m_data = re.search(r"\"randomData\":\"([^\"]+)\"", body)
             m_id = re.search(r"\"id\":\"([^\"]+)\"", body)
             if not m_data or not m_id:
                 raise RuntimeError("preact challenge parse error")
             solved = bytes_to_hex(sha256(m_data.group(1)))
             time.sleep(sleep)
-            url = (endpoint.rstrip("/") + f"/.within.website/x/cmd/anubis/api/pass-challenge?"
-                                          f"id={m_id.group(1)}&result={solved}&redir=%2F")
+            url = (
+                endpoint.rstrip("/")
+                + f"/.within.website/x/cmd/anubis/api/pass-challenge?"
+                f"id={m_id.group(1)}&result={solved}&redir=%2F"
+            )
             c2, _ = _fetch(url, cookie)
             final_cookie = f"{cookie}; {c2}" if c2 else cookie
         else:  # assume PoW
@@ -104,8 +114,11 @@ def solve(endpoint: str, sleep: float = 1.0) -> str:
             hash_hex = bytes_to_hex(h)
 
             time.sleep(sleep)
-            url = (endpoint.rstrip("/") + f"/.within.website/x/cmd/anubis/api/pass-challenge?"
-                                          f"response={hash_hex}&nonce={ans}&elapsedTime=10&redir=%2F")
+            url = (
+                endpoint.rstrip("/")
+                + f"/.within.website/x/cmd/anubis/api/pass-challenge?"
+                f"response={hash_hex}&nonce={ans}&elapsedTime=10&redir=%2F"
+            )
             c2, _ = _fetch(url, cookie)
             final_cookie = f"{cookie}; {c2}" if c2 else cookie
     except Exception as e:
