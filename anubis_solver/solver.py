@@ -1,10 +1,13 @@
 import concurrent.futures
+import hashlib
 import re
 import requests
 import time
 from typing import Optional
 
-from .utils import sha256, bytes_to_hex
+
+def _sha256(data: str) -> str:
+    return hashlib.sha256(data.encode("utf-8")).hexdigest()
 
 
 def _fetch(url: str, cookie: Optional[str] = None) -> tuple[Optional[str], str]:
@@ -49,6 +52,7 @@ def _solve_pow(challenge: str, difficulty: int, threads: int = 8) -> int:
 
     stop = False
     result = None
+    target = "0" * difficulty
 
     def worker(start: int):
         nonlocal stop, result
@@ -56,8 +60,8 @@ def _solve_pow(challenge: str, difficulty: int, threads: int = 8) -> int:
             if stop:
                 return
             data = challenge + str(nonce)
-            h = sha256(data)
-            if all(b == 0 for b in h[:difficulty]):
+            h = _sha256(data)
+            if h.startswith(target):
                 stop = True
                 result = nonce
                 return
@@ -91,7 +95,7 @@ def solve(endpoint: str, sleep: float = 1.0) -> str:
             m_id = re.search(r"\"id\":\"([^\"]+)\"", body)
             if not m_data or not m_id:
                 raise RuntimeError("preact challenge parse error")
-            solved = bytes_to_hex(sha256(m_data.group(1)))
+            solved = _sha256(m_data.group(1))
             time.sleep(sleep)
             url = (
                 endpoint.rstrip("/")
@@ -113,8 +117,7 @@ def solve(endpoint: str, sleep: float = 1.0) -> str:
             diff = int(m_diff.group(1))
 
             ans = _solve_pow(chal, diff)
-            h = sha256(chal + str(ans))
-            hash_hex = bytes_to_hex(h)
+            hash_hex = _sha256(chal + str(ans))
 
             time.sleep(sleep)
 
