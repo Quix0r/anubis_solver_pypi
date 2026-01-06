@@ -1,5 +1,6 @@
 import concurrent.futures
 import hashlib
+import os
 import re
 import requests
 import time
@@ -47,7 +48,7 @@ def _fetch(url: str, cookie: Optional[str] = None) -> tuple[Optional[str], str]:
     return set_cookie, body
 
 
-def _solve_pow(challenge: str, difficulty: int, threads: int = 8) -> int:
+def _solve_pow(challenge: str, difficulty: int, threads: int = os.cpu_count()) -> int:
     from itertools import count
 
     stop = False
