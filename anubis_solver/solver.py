@@ -84,7 +84,7 @@ def solve(endpoint: str, sleep: float = 1.0) -> str:
     final_cookie = None
     try:
         if '"algorithm":"metarefresh"' in body:
-            m = re.search(r"url=/([^\"<]+)", body)
+            m = re.search(r"url=/([^<]+)\">", body)
             if not m:
                 raise RuntimeError("No URL in metarefresh challenge")
             url = endpoint.rstrip("/") + "/" + m.group(1).replace("&amp;", "&")
